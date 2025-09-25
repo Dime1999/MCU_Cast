@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Marvel Cinematic Universe Cast — Viewer</title>
+
+  <style>
+    :root{
+      --bg:#0f1724;
+      --muted:#94a3b8;
+      --accent:#7c3aed;
+      --glass: rgba(255,255,255,0.03);
+      --card:#0b1220;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    body{
+      margin:0;
+      background:linear-gradient(180deg,#071026 0%, #071425 60%);
+      color:#e6eef8;
+      padding:28px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .container{width:100%;max-width:1100px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#5b21b6);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:20px
+    }
+
+    .card{background:var(--card);border-radius:12px;padding:18px}
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+
+    .search{
+      display:flex;align-items:center;gap:8px;
+      background:var(--glass);padding:8px 12px;border-radius:10px
+    }
+    .search input{
+      border:0;background:transparent;color:inherit;outline:none;width:260px;font-size:14px
+    }
+
+    .btn{
+      background:var(--accent);color:white;padding:8px 12px;border-radius:10px;
+      border:0;cursor:pointer;font-weight:600;font-size:13px
+    }
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.05);color:var(--muted)}
+
+    .table-wrap{overflow:auto;border-radius:10px;margin-top:6px}
+    table{width:100%;border-collapse:collapse;min-width:820px;font-size:14px}
+    thead th{
+      text-align:left;padding:12px 16px;background:rgba(255,255,255,0.05);
+      font-weight:700;color:var(--muted);font-size:13px
+    }
+    tbody td{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1)}
+    tbody tr:hover td{background:rgba(255,255,255,0.03)}
+
+    .muted{color:var(--muted);font-size:13px}
+    .empty{padding:40px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">MCU</div>
+      <div>
+        <h1>Marvel Cinematic Universe Cast</h1>
+        <p class="muted">Live data from your <code>actors</code> table (API Gateway / Lambda)</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <div class="search">
+          <input id="q" placeholder="Search actors, movies, characters..." />
+        </div>
+        <button id="refresh" class="btn ghost">Refresh</button>
+        <div style="flex:1"></div>
+        <div class="muted" id="status">Status: idle</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>First</th>
+              <th>Last</th>
+              <th>Movie</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="6" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    const API_URL = "https://qjndkesyxgaeeb257lovcg3yj40klquf.lambda-url.us-east-2.on.aws/";
+    const REQUEST_USING_POST = true; // since Lambda expects action
+
+    const tbody = document.getElementById("tbody");
+    const qInput = document.getElementById("q");
+    const refreshBtn = document.getElementById("refresh");
+    const statusText = document.getElementById("status");
+
+    let rows = [];
+    let filtered = [];
+
+    function setStatus(text, color){ statusText.textContent = "Status: " + text; if(color) statusText.style.color = color; }
+
+    async function fetchData(){
+      setStatus("loading...", "orange");
+      try {
+        let res;
+        if (REQUEST_USING_POST) {
+          res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "query" })
+          });
+        } else {
+          res = await fetch(API_URL);
+        }
+
+        const data = await res.json();
+        rows = data.data || [];
+        filtered = rows.slice();
+        setStatus(`loaded ${rows.length} rows`, "lightgreen");
+        renderTable();
+      } catch(err){
+        console.error(err);
+        setStatus("error", "red");
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">Error fetching data</td></tr>`;
+      }
+    }
+
+    function renderTable(){
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">No results</td></tr>`;
+        return;
+      }
+
+      const html = filtered.map(r => `
+        <tr>
+          <td>${r.id ?? ""}</td>
+          <td>${r.first_name ?? ""}</td>
+          <td>${r.last_name ?? ""}</td>
+          <td>${r.movie ?? ""}</td>
+          <td class="muted">${new Date(r.created_at).toLocaleString()}</td>
+        </tr>`).join("");
+      tbody.innerHTML = html;
+    }
+
+    qInput.addEventListener("input", e=>{
+      const q = e.target.value.toLowerCase();
+      filtered = rows.filter(r => 
+        (r.first_name + " " + r.last_name + " " + r.movie + " " + (r.role||"")).toLowerCase().includes(q)
+      );
+      renderTable();
+    });
+
+    refreshBtn.addEventListener("click", fetchData);
+
+    fetchData();
+  </script>
+</body>
+</html>
