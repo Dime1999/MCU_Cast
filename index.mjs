@@ -3,11 +3,11 @@ const mysql = require("mysql2/promise");
 
 // Create a connection pool (recommended for production apps)
 const pool = mysql.createPool({
-  host: "mcucast2.cf0y22k2c49f.us-east-2.rds.amazonaws.com",      // e.g. mydb.xxxxxxx.us-east-1.rds.amazonaws.com
-  user: "admin",      // your DB username
-  password: "SparkingZero26&",  // your DB password
-  database: "mcucast2",  // your DB name
-  port: 3306,                     // default MySQL port
+  host: "mydb.xxxxxxx.us-east-2.rds.amazonaws.com",      // e.g. mydb.xxxxxxx.us-east-1.rds.amazonaws.com
+  user: "private",      // your DB username
+  password: "private",  // your DB password
+  database: "private",  // your DB name
+  port: "private",                     // default MySQL port
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -40,3 +40,4 @@ async function main() {
 }
 
 main();
+
